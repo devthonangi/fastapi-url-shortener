@@ -2,23 +2,32 @@ import os
 import sqlite3
 
 #  Ensure database folder exists
-os.makedirs("database", exist_ok=True)
+DB_FOLDER = "database"
+DB_FILE = f"{DB_FOLDER}/db.sqlite"
+
+os.makedirs(DB_FOLDER, exist_ok=True)
 
 #  Connect to SQLite
-conn = sqlite3.connect("database/db.sqlite")
-cursor = conn.cursor()
+try:
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
 
-#  Create table if not exists
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS short_urls (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    original_url TEXT NOT NULL,
-    short_key TEXT UNIQUE NOT NULL
-);
-""")
+    #  Create table if not exists
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS short_urls (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        original_url TEXT NOT NULL,
+        short_key TEXT UNIQUE NOT NULL
+    );
+    """)
 
-#  Commit and close
-conn.commit()
-conn.close()
+    #  Commit and close
+    conn.commit()
+    print(f"✅ SQLite database initialized successfully in '{DB_FILE}'!")
 
-print(" SQLite database initialized successfully in 'database/db.sqlite'!")
+except sqlite3.Error as e:
+    print(f"❌ Database initialization failed: {e}")
+
+finally:
+    if conn:
+        conn.close()

@@ -11,7 +11,7 @@ from pydantic import BaseModel
 #  Initialize FastAPI app
 app = FastAPI()
 
-#  Ensure `templates/` directory exists
+#  Ensure `templates/` directory is used
 templates = Jinja2Templates(directory="templates")
 
 #  Mount `static/` directory (Create it if needed)
@@ -30,7 +30,7 @@ def get_db_connection():
 
 #  Ensure database and table exist
 def init_db():
-    os.makedirs("database", exist_ok=True)  # ✅ Create `database/` folder if not exists
+    os.makedirs("database", exist_ok=True)
     with get_db_connection() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS short_urls (
@@ -40,7 +40,7 @@ def init_db():
             )
         """)
         conn.commit()
-init_db()  #  Initialize DB on startup
+init_db()  #  Call database setup on startup
 
 #  Request Model for URL Shortening
 class URLRequest(BaseModel):
@@ -61,35 +61,37 @@ async def shorten_url(request: URLRequest):
     short_key = generate_hash(request.url)
 
     with get_db_connection() as conn:
+        # Check if the URL is already stored
         existing = conn.execute("SELECT short_key FROM short_urls WHERE original_url = ?", (request.url,)).fetchone()
         if existing:
-            return {"short_url": f"https://fastapi-url-shortener-production-7250.up.railway.app//{existing['short_key']}"}
+            return {"short_url": f"https://fastapi-url-shortener-production-7250.up.railway.app/{existing['short_key']}"}
 
-        conn.execute("INSERT INTO short_urls (original_url, short_key) VALUES (?, ?)", (request.url, short_key))
-        conn.commit()
+        # Store the new short URL
+        try:
+            conn.execute("INSERT INTO short_urls (original_url, short_key) VALUES (?, ?)", (request.url, short_key))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            raise HTTPException(status_code=400, detail="Short key conflict, try again.")
 
-    return {"short_url": f"https://fastapi-url-shortener-production-7250.up.railway.app//{short_key}"}
+    return {"short_url": f"https://fastapi-url-shortener-production-7250.up.railway.app/{short_key}"}
 
-# API: Retrieve Original URL (Fixed Redirect)
+#  API: Retrieve Original URL (Now Fixed with RedirectResponse)
 @app.get("/{short_key}")
 async def redirect_url(short_key: str):
     with get_db_connection() as conn:
         row = conn.execute("SELECT original_url FROM short_urls WHERE short_key = ?", (short_key,)).fetchone()
 
     if row:
-        original_url = row["original_url"]
-        print(f"Redirecting to: {original_url}")  # ✅ Debugging
-        return RedirectResponse(url=original_url, status_code=302)  # ✅ Ensures proper redirection
+        return RedirectResponse(url=row["original_url"])  # ✅ Redirects correctly!
 
     raise HTTPException(status_code=404, detail="URL not found")
 
-
-#   Serve `templates/index.html`
+#  Serve `templates/index.html`
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 #  Run the server with Railway's dynamic PORT
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))  # Default to 8000 if Railway doesn't provide PORT
+    port = int(os.getenv("PORT", 8080))  # Default to 8080 if Railway doesn't provide PORT
     uvicorn.run(app, host="0.0.0.0", port=port)
