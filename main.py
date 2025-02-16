@@ -7,18 +7,18 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os
 
-#  Initialize FastAPI app
+# ✅ Initialize FastAPI app
 app = FastAPI()
 
-#  Ensure `templates/` directory is used
+# ✅ Ensure `templates/` directory is used
 templates = Jinja2Templates(directory="templates")
 
-#  Mount `static/` directory (Create it if needed)
+# ✅ Mount `static/` directory (Create it if needed)
 if not os.path.exists("static"):
     os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-#  SQLite Database Connection
+# ✅ SQLite Database Connection
 DB_FILE = "database/db.sqlite"
 
 def get_db_connection():
@@ -27,7 +27,7 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-#  Ensure database and table exist
+# ✅ Ensure database and table exist
 def init_db():
     os.makedirs("database", exist_ok=True)
     with get_db_connection() as conn:
@@ -39,22 +39,22 @@ def init_db():
             )
         """)
         conn.commit()
-init_db()  #  Call database setup on startup
+init_db()  # ✅ Call database setup on startup
 
-#  Request Model for URL Shortening
+# ✅ Request Model for URL Shortening
 class URLRequest(BaseModel):
     url: str
 
-#  Generate SHA256 Hash for Short Key
+# ✅ Generate SHA256 Hash for Short Key
 def generate_hash(url: str):
     return hashlib.sha256(url.encode()).hexdigest()[:8]
 
-#  API: Serve Favicon to Prevent 404 Errors
+# 📌 API: Serve Favicon to Prevent 404 Errors
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return {"message": "No favicon available"}
 
-#  API: Shorten URL
+# 📌 API: Shorten URL
 @app.post("/shorten/")
 async def shorten_url(request: URLRequest):
     short_key = generate_hash(request.url)
@@ -62,14 +62,14 @@ async def shorten_url(request: URLRequest):
     with get_db_connection() as conn:
         existing = conn.execute("SELECT short_key FROM short_urls WHERE original_url = ?", (request.url,)).fetchone()
         if existing:
-            return {"short_url": f"https://your-fastapi-app.up.railway.app/{existing['short_key']}"}
+            return {"short_url": f"https://your-railway-app.up.railway.app/{existing['short_key']}"}
 
         conn.execute("INSERT INTO short_urls (original_url, short_key) VALUES (?, ?)", (request.url, short_key))
         conn.commit()
 
-    return {"short_url": f"https://your-fastapi-app.up.railway.app/{short_key}"}
+    return {"short_url": f"https://your-railway-app.up.railway.app/{short_key}"}
 
-#  API: Retrieve Original URL (Now Fixed with RedirectResponse)
+# 📌 API: Retrieve Original URL (✅ FIXED: Now properly redirects)
 @app.get("/{short_key}")
 async def redirect_url(short_key: str):
     with get_db_connection() as conn:
@@ -77,11 +77,11 @@ async def redirect_url(short_key: str):
 
     if row:
         original_url = row["original_url"]
-        return RedirectResponse(url=original_url)  # ✅ FIXED: Now properly redirects!
+        return RedirectResponse(url=original_url, status_code=302)  # ✅ FIXED
 
     raise HTTPException(status_code=404, detail="URL not found")
 
-#  Serve `templates/index.html`
+# 📌 ✅ Serve `templates/index.html`
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
