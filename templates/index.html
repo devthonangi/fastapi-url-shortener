@@ -38,7 +38,7 @@
     <button onclick="shortenURL()">Shorten</button>
 
     <div class="shortened-url" id="result" style="display: none;">
-        <p>Shortened URL: <span id="shortened-url"></span></p>
+        <p>Shortened URL: <a id="shortened-url" target="_blank"></a></p>
         <button class="copy-btn" onclick="copyToClipboard()">Copy</button>
     </div>
 
@@ -58,7 +58,9 @@
 
             const data = await response.json();
             if (data.short_url) {
-                document.getElementById("shortened-url").innerText = data.short_url;
+                const shortUrlElement = document.getElementById("shortened-url");
+                shortUrlElement.href = data.short_url;
+                shortUrlElement.innerText = data.short_url;
                 document.getElementById("result").style.display = "block";
             } else {
                 alert("Error shortening URL. Please try again.");
@@ -66,7 +68,7 @@
         }
 
         function copyToClipboard() {
-            const shortUrl = document.getElementById("shortened-url").innerText;
+            const shortUrl = document.getElementById("shortened-url").href;
             navigator.clipboard.writeText(shortUrl).then(() => {
                 alert("Copied to clipboard!");
             }).catch(err => {
@@ -76,4 +78,3 @@
     </script>
 </body>
 </html>
-
