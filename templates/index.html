@@ -58,9 +58,9 @@
 
             const data = await response.json();
             if (data.short_url) {
-                const shortUrlElement = document.getElementById("shortened-url");
-                shortUrlElement.href = data.short_url;
-                shortUrlElement.innerText = data.short_url;
+                const shortenedUrlElement = document.getElementById("shortened-url");
+                shortenedUrlElement.innerText = data.short_url;
+                shortenedUrlElement.href = data.short_url;  //  Make it clickable
                 document.getElementById("result").style.display = "block";
             } else {
                 alert("Error shortening URL. Please try again.");
@@ -68,11 +68,11 @@
         }
 
         function copyToClipboard() {
-            const shortUrl = document.getElementById("shortened-url").href;
+            const shortUrl = document.getElementById("shortened-url").innerText;
             navigator.clipboard.writeText(shortUrl).then(() => {
-                alert("Copied to clipboard!");
+                alert("✅ Shortened URL copied to clipboard!");
             }).catch(err => {
-                console.error("Failed to copy: ", err);
+                console.error("❌ Failed to copy: ", err);
             });
         }
     </script>
