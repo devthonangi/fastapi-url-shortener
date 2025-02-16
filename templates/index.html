@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI URL Shortener</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        input {
+            width: 60%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .shortened-url {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        .copy-btn {
+            padding: 5px 10px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>FastAPI URL Shortener</h1>
+    <input type="text" id="url" placeholder="Enter URL">
+    <button onclick="shortenURL()">Shorten</button>
+
+    <div class="shortened-url" id="result" style="display: none;">
+        <p>Shortened URL: <span id="shortened-url"></span></p>
+        <button class="copy-btn" onclick="copyToClipboard()">Copy</button>
+    </div>
+
+    <script>
+        async function shortenURL() {
+            const urlInput = document.getElementById("url").value;
+            if (!urlInput) {
+                alert("Please enter a URL.");
+                return;
+            }
+
+            const response = await fetch("/shorten/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: urlInput })
+            });
+
+            const data = await response.json();
+            if (data.short_url) {
+                document.getElementById("shortened-url").innerText = data.short_url;
+                document.getElementById("result").style.display = "block";
+            } else {
+                alert("Error shortening URL. Please try again.");
+            }
+        }
+
+        function copyToClipboard() {
+            const shortUrl = document.getElementById("shortened-url").innerText;
+            navigator.clipboard.writeText(shortUrl).then(() => {
+                alert("Copied to clipboard!");
+            }).catch(err => {
+                console.error("Failed to copy: ", err);
+            });
+        }
+    </script>
+</body>
+</html>
+
